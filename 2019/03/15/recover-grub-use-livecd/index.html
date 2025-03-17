@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/header.jpg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/header.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/header.jpg">
+  <link rel="mask-icon" href="/images/header.jpg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"jowenshaw.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="使用光盘或者USB启动盘进入LiveCD（试用环境） 查看硬盘分区状况，获取 Linux 系统的安装分区编号 挂载 Linux 安装分区 挂载其他所需的目录（使用 –bind） Chroot 到硬盘上的 Linux 系统 安装并更新 Grub Grub 已经修复成功，退出 chroot 环境, 卸载已经挂载的设备与目录： 重启电脑">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 LiveCD 修复 GRUB 引导">
+<meta property="og:url" content="https://jowenshaw.github.io/2019/03/15/recover-grub-use-livecd/index.html">
+<meta property="og:site_name" content="Jowen&#39;s Blog Space">
+<meta property="og:description" content="使用光盘或者USB启动盘进入LiveCD（试用环境） 查看硬盘分区状况，获取 Linux 系统的安装分区编号 挂载 Linux 安装分区 挂载其他所需的目录（使用 –bind） Chroot 到硬盘上的 Linux 系统 安装并更新 Grub Grub 已经修复成功，退出 chroot 环境, 卸载已经挂载的设备与目录： 重启电脑">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-03-15T13:14:37.000Z">
+<meta property="article:modified_time" content="2025-03-16T14:24:23.460Z">
+<meta property="article:author" content="Jowen Shaw">
+<meta property="article:tag" content="grub">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://jowenshaw.github.io/2019/03/15/recover-grub-use-livecd/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>使用 LiveCD 修复 GRUB 引导 | Jowen's Blog Space</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Jowen's Blog Space</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://jowenshaw.github.io/2019/03/15/recover-grub-use-livecd/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/header.jpg">
+      <meta itemprop="name" content="Jowen Shaw">
+      <meta itemprop="description" content="Truth Seek">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Jowen's Blog Space">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用 LiveCD 修复 GRUB 引导
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-03-15 21:14:37" itemprop="dateCreated datePublished" datetime="2019-03-15T21:14:37+08:00">2019-03-15</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-03-16 22:24:23" itemprop="dateModified" datetime="2025-03-16T22:24:23+08:00">2025-03-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/tools/" itemprop="url" rel="index"><span itemprop="name">tools</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="toc">
+
+<!-- toc -->
+
+<ul>
+<li><a href="#%E4%BD%BF%E7%94%A8%E5%85%89%E7%9B%98%E6%88%96%E8%80%85usb%E5%90%AF%E5%8A%A8%E7%9B%98%E8%BF%9B%E5%85%A5livecd%E8%AF%95%E7%94%A8%E7%8E%AF%E5%A2%83">使用光盘或者USB启动盘进入LiveCD（试用环境）</a></li>
+<li><a href="#%E6%9F%A5%E7%9C%8B%E7%A1%AC%E7%9B%98%E5%88%86%E5%8C%BA%E7%8A%B6%E5%86%B5%E8%8E%B7%E5%8F%96-linux-%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%AE%89%E8%A3%85%E5%88%86%E5%8C%BA%E7%BC%96%E5%8F%B7">查看硬盘分区状况，获取 Linux 系统的安装分区编号</a></li>
+<li><a href="#%E6%8C%82%E8%BD%BD-linux-%E5%AE%89%E8%A3%85%E5%88%86%E5%8C%BA">挂载 Linux 安装分区</a></li>
+<li><a href="#%E6%8C%82%E8%BD%BD%E5%85%B6%E4%BB%96%E6%89%80%E9%9C%80%E7%9A%84%E7%9B%AE%E5%BD%95%E4%BD%BF%E7%94%A8-bind">挂载其他所需的目录（使用 –bind）</a></li>
+<li><a href="#chroot-%E5%88%B0%E7%A1%AC%E7%9B%98%E4%B8%8A%E7%9A%84-linux-%E7%B3%BB%E7%BB%9F">Chroot 到硬盘上的 Linux 系统</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E5%B9%B6%E6%9B%B4%E6%96%B0-grub">安装并更新 Grub</a></li>
+<li><a href="#grub-%E5%B7%B2%E7%BB%8F%E4%BF%AE%E5%A4%8D%E6%88%90%E5%8A%9F%E9%80%80%E5%87%BA-chroot-%E7%8E%AF%E5%A2%83-%E5%8D%B8%E8%BD%BD%E5%B7%B2%E7%BB%8F%E6%8C%82%E8%BD%BD%E7%9A%84%E8%AE%BE%E5%A4%87%E4%B8%8E%E7%9B%AE%E5%BD%95">Grub 已经修复成功，退出 chroot 环境, 卸载已经挂载的设备与目录：</a></li>
+<li><a href="#%E9%87%8D%E5%90%AF%E7%94%B5%E8%84%91">重启电脑</a></li>
+</ul>
+<!-- tocstop -->
+
+</div>
+<span id="more"></span>
+
+<h3><span id="使用光盘或者usb启动盘进入livecd试用环境">使用光盘或者USB启动盘进入LiveCD（试用环境）</span><a href="#使用光盘或者usb启动盘进入livecd试用环境" class="header-anchor">#</a></h3><h3><span id="查看硬盘分区状况获取-linux-系统的安装分区编号">查看硬盘分区状况，获取 Linux 系统的安装分区编号</span><a href="#查看硬盘分区状况获取-linux-系统的安装分区编号" class="header-anchor">#</a></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> fdisk -l</span><br></pre></td></tr></table></figure>
+<p>以下假设 Linux 系统的安装分区为 <code>/dev/sda3</code></p>
+<h3><span id="挂载-linux-安装分区">挂载 Linux 安装分区</span><a href="#挂载-linux-安装分区" class="header-anchor">#</a></h3><p>已知 Linux 安装在 &#x2F;dev&#x2F;sda3 上了，用以下命令来挂载 Linux 安装分区。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> mount /dev/sda3 /mnt</span><br></pre></td></tr></table></figure>
+
+<h3><span id="挂载其他所需的目录使用-bind">挂载其他所需的目录（使用 –bind）</span><a href="#挂载其他所需的目录使用-bind" class="header-anchor">#</a></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> mount --<span class="built_in">bind</span> /dev /mnt/dev</span><br><span class="line"><span class="built_in">sudo</span> mount --<span class="built_in">bind</span> /proc /mnt/proc</span><br><span class="line"><span class="built_in">sudo</span> mount --<span class="built_in">bind</span> /sys /mnt/sys</span><br></pre></td></tr></table></figure>
+
+<h3><span id="chroot-到硬盘上的-linux-系统">Chroot 到硬盘上的 Linux 系统</span><a href="#chroot-到硬盘上的-linux-系统" class="header-anchor">#</a></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">chroot</span> /mnt</span><br></pre></td></tr></table></figure>
+
+<h3><span id="安装并更新-grub">安装并更新 Grub</span><a href="#安装并更新-grub" class="header-anchor">#</a></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">update-grub</span><br><span class="line">grub-install /dev/sda</span><br></pre></td></tr></table></figure>
+
+<h3><span id="grub-已经修复成功退出-chroot-环境-卸载已经挂载的设备与目录">Grub 已经修复成功，退出 chroot 环境, 卸载已经挂载的设备与目录：</span><a href="#grub-已经修复成功退出-chroot-环境-卸载已经挂载的设备与目录" class="header-anchor">#</a></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">exit</span> <span class="comment">#退出 chroot 环境</span></span><br><span class="line"><span class="built_in">sudo</span> umount /mnt/dev</span><br><span class="line"><span class="built_in">sudo</span> umount /mnt/proc</span><br><span class="line"><span class="built_in">sudo</span> umount /mnt/sys</span><br><span class="line"><span class="built_in">sudo</span> umount /mnt</span><br></pre></td></tr></table></figure>
+
+<h3><span id="重启电脑">重启电脑</span><a href="#重启电脑" class="header-anchor">#</a></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">shutdown -r now</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/grub/" rel="tag"># grub</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/03/15/hexo-install/" rel="prev" title="使用淘宝源安装 Hexo">
+      <i class="fa fa-chevron-left"></i> 使用淘宝源安装 Hexo
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/03/15/things-todo-after-install-ubuntu/" rel="next" title="新装 Ubuntu 之后需要做的一些工作">
+      新装 Ubuntu 之后需要做的一些工作 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">使用光盘或者USB启动盘进入LiveCD（试用环境）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">查看硬盘分区状况，获取 Linux 系统的安装分区编号</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">挂载 Linux 安装分区</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">挂载其他所需的目录（使用 –bind）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">Chroot 到硬盘上的 Linux 系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">安装并更新 Grub</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">Grub 已经修复成功，退出 chroot 环境, 卸载已经挂载的设备与目录：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">重启电脑</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Jowen Shaw"
+      src="/images/header.jpg">
+  <p class="site-author-name" itemprop="name">Jowen Shaw</p>
+  <div class="site-description" itemprop="description">Truth Seek</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/jowenshaw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;jowenshaw" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:jowenshaw@gmail.com" title="E-Mail → mailto:jowenshaw@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://x.com/jowenshaw" title="Twitter → https:&#x2F;&#x2F;x.com&#x2F;jowenshaw" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/jowenshaw" title="LinkedIn → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;jowenshaw" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>LinkedIn</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jowen Shaw</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

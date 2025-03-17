@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/header.jpg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/header.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/header.jpg">
+  <link rel="mask-icon" href="/images/header.jpg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"jowenshaw.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="P2P网络 通信协议 同步模式 同步建立 同步业务 同步逻辑">
+<meta property="og:type" content="article">
+<meta property="og:title" content="以太坊同步逻辑概述">
+<meta property="og:url" content="https://jowenshaw.github.io/2019/03/18/ethereum-sync-logics/index.html">
+<meta property="og:site_name" content="Jowen&#39;s Blog Space">
+<meta property="og:description" content="P2P网络 通信协议 同步模式 同步建立 同步业务 同步逻辑">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-03-18T09:17:15.000Z">
+<meta property="article:modified_time" content="2025-03-16T14:24:23.460Z">
+<meta property="article:author" content="Jowen Shaw">
+<meta property="article:tag" content="ethereum">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://jowenshaw.github.io/2019/03/18/ethereum-sync-logics/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>以太坊同步逻辑概述 | Jowen's Blog Space</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Jowen's Blog Space</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://jowenshaw.github.io/2019/03/18/ethereum-sync-logics/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/header.jpg">
+      <meta itemprop="name" content="Jowen Shaw">
+      <meta itemprop="description" content="Truth Seek">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Jowen's Blog Space">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          以太坊同步逻辑概述
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-03-18 17:17:15" itemprop="dateCreated datePublished" datetime="2019-03-18T17:17:15+08:00">2019-03-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-03-16 22:24:23" itemprop="dateModified" datetime="2025-03-16T22:24:23+08:00">2025-03-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/blockchain/" itemprop="url" rel="index"><span itemprop="name">blockchain</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="toc">
+
+<!-- toc -->
+
+<ul>
+<li><a href="#p2p%E7%BD%91%E7%BB%9C">P2P网络</a></li>
+<li><a href="#%E9%80%9A%E4%BF%A1%E5%8D%8F%E8%AE%AE">通信协议</a></li>
+<li><a href="#%E5%90%8C%E6%AD%A5%E6%A8%A1%E5%BC%8F">同步模式</a></li>
+<li><a href="#%E5%90%8C%E6%AD%A5%E5%BB%BA%E7%AB%8B">同步建立</a></li>
+<li><a href="#%E5%90%8C%E6%AD%A5%E4%B8%9A%E5%8A%A1">同步业务</a></li>
+<li><a href="#%E5%90%8C%E6%AD%A5%E9%80%BB%E8%BE%91">同步逻辑</a></li>
+</ul>
+<!-- tocstop -->
+
+</div>
+<span id="more"></span>
+
+<h3><span id="p2p网络">P2P网络</span><a href="#p2p网络" class="header-anchor">#</a></h3><p>P2P(peer-to-peer)架构的特点在于：其网络中的个体在地位和功能上是平等的，它们都能同时既消耗资源又提供资源。</p>
+<h3><span id="通信协议">通信协议</span><a href="#通信协议" class="header-anchor">#</a></h3><p>从TCP&#x2F;IP协议族分层的角度来说，P2P网络中实际的数据交换，依然是网络层用IP协议，传输层用TCP协议。<br>此处所说的协议应算作应用层协议。即以太坊结点(node)之间通信应该遵循的通信协议。<br>所谓协议，其实就是通信所支持的数据交换类型。</p>
+<p>目前以太坊主要遵循以下消息类型（eth&#x2F;62, eth&#x2F;63）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">eth/62 协议：</span><br><span class="line">StatusMsg          = 0x00</span><br><span class="line">NewBlockHashesMsg  = 0x01</span><br><span class="line">TxMsg              = 0x02</span><br><span class="line">GetBlockHeadersMsg = 0x03</span><br><span class="line">BlockHeadersMsg    = 0x04</span><br><span class="line">GetBlockBodiesMsg  = 0x05</span><br><span class="line">BlockBodiesMsg     = 0x06</span><br><span class="line">NewBlockMsg        = 0x07</span><br><span class="line"></span><br><span class="line">eth/63 协议：</span><br><span class="line">GetNodeDataMsg = 0x0d</span><br><span class="line">NodeDataMsg    = 0x0e</span><br><span class="line">GetReceiptsMsg = 0x0f</span><br><span class="line">ReceiptsMsg    = 0x10</span><br></pre></td></tr></table></figure>
+
+<h3><span id="同步模式">同步模式</span><a href="#同步模式" class="header-anchor">#</a></h3><p>Fast模式: 同步区块头，区块体，以及状态数据<br>Full模式：同步区块头，区块体，并通过重放交易生成收据和状态数据<br>Light模式: 只同步区块头，其他数据需要时通过网络请求获取</p>
+<h3><span id="同步建立">同步建立</span><a href="#同步建立" class="header-anchor">#</a></h3><p>握手：发送己方状态给远端，远端读取状态，通过对比创世块，网络ID，协议版本，一致方可继续通信。</p>
+<h3><span id="同步业务">同步业务</span><a href="#同步业务" class="header-anchor">#</a></h3><ul>
+<li><p>广播新出现的交易<br>txBroadcastLoop()会在txCh通道的收端持续等待，一旦接收到有关新交易的事件，会立即调用BroadcastTx()函数广播给那些尚无该交易对象的相邻个体。</p>
+</li>
+<li><p>广播新挖出的区块<br>minedBroadcastLoop()持续等待本个体的新挖出区块事件，然后立即广播给需要的相邻个体。<br>当不再订阅新挖出区块事件时，这个函数才会结束等待并返回。<br>在收到新挖出区块事件后，minedBroadcastLoop()会连续调用两次BroadcastBlock()。<br>两次调用仅仅一个bool型参数<code>propagate</code>不一样，<br>当该参数为true时，会将整个新区块依次发给相邻区块中的一小部分；<br>而当其为false时，仅仅将新区块的Hash值和Number发送给所有相邻列表。</p>
+</li>
+<li><p>定时与相邻个体进行区块全链的强制同步<br>syncer()首先启动fetcher，然后进入一个无限循环。<br>每次循环中都会向“最优”的peer作一次区块全链同步。<br>所谓”最优”指的是peer中所维护区块链的TotalDifficulty(td)最高。<br>同步发起分两种情况：</p>
+<ol>
+<li>如果有新peer到达，则在peer列表数目大于5时，发起同步；</li>
+<li>如果没有新peer到达，则以10s为间隔定时发起同步。</li>
+</ol>
+</li>
+<li><p>将pending交易同步给新加入的peer<br>txsyncLoop()主体也是一个无限循环。<br>每当有新peer加入时，向其广播所有的pending交易。<br>为了减缓带宽压力，将要广播的交易拆分成小的数据包(<code>&lt;=100k</code>)进行发送。</p>
+</li>
+</ul>
+<h3><span id="同步逻辑">同步逻辑</span><a href="#同步逻辑" class="header-anchor">#</a></h3><p>只有在远端拥有更大的整体难度(td)时才从此远端同步。通过downloader.synchronise()完成。<br>首先，获取远端最新区块头信息;<br>然后，找出共同的祖先从而确定同步范围;<br>最后，调用spawnSync()并发完成一组数据(块头，块体，收据，状态)的获取和存储。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ethereum/" rel="tag"># ethereum</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/03/15/things-todo-after-install-ubuntu/" rel="prev" title="新装 Ubuntu 之后需要做的一些工作">
+      <i class="fa fa-chevron-left"></i> 新装 Ubuntu 之后需要做的一些工作
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/03/19/ethereum-miner/" rel="next" title="以太坊挖矿概述">
+      以太坊挖矿概述 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">P2P网络</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">通信协议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">同步模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">同步建立</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">同步业务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">同步逻辑</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Jowen Shaw"
+      src="/images/header.jpg">
+  <p class="site-author-name" itemprop="name">Jowen Shaw</p>
+  <div class="site-description" itemprop="description">Truth Seek</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/jowenshaw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;jowenshaw" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:jowenshaw@gmail.com" title="E-Mail → mailto:jowenshaw@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://x.com/jowenshaw" title="Twitter → https:&#x2F;&#x2F;x.com&#x2F;jowenshaw" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/jowenshaw" title="LinkedIn → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;jowenshaw" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>LinkedIn</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jowen Shaw</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
